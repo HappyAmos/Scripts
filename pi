@@ -1,0 +1,56 @@
+#!/bin/bash
+shopt -s lastpipe
+
+USER="andrew"
+SERVER="10.0.0.160"
+NETWORK_DEVICE="wlp2s0"
+
+LOCAL_IP=$(ip -f inet -o addr show $NETWORK_DEVICE|cut -d\  -f 7 | cut -d/ -f 1)
+
+CEL=$'\xc2\xb0'C
+FAR=$'\xc2\xb0'F
+
+# Fetch various statistics from the pi over SSH.
+# Note, tail -1 assumes a single CPU core.
+# Try watch -n 1 cat /proc/net/dev to get network upload/download information.
+# Try to retrieve actively connected devices.
+fetch_stats() {
+	ssh "$USER@$SERVER" sh <<-'EOF'
+		date +"%F %H:%M:%S"
+		hostname
+		free -m | awk '/Mem:/ {print $4}'
+		uptime | awk '{print $3}' | tr ',' ' '
+		cat /sys/class/thermal/thermal_zone*/temp
+		cat /proc/stat |grep cpu |tail -1|awk '{print ($5*100)/($2+$3+$4+$5+$6+$7+$8+$9+$10)}'|awk '{print 100-$1}'
+	EOF
+}
+
+# This could break in the future. Awk outputs the 7th column of the
+# row that has the word "time=" in it.
+PINGGED=`ping -c 1 $SERVER | grep -i "time=" | awk '{print $7 $8}' | cut -d '=' -f 2`
+
+fetch_stats | {
+	read -r DATE
+	read -r HOSTNAME
+	read -r MEMORY
+	read -r UPTIME
+	read -r CPU_TEMP
+	read -r CPU_USAGE
+}
+
+# Convert the raw CPU temp (*C) to a sane value, convert it to farenheit, and
+# print it to the variables to only two decimal places.
+read -r CPU_TEMP_C CPU_TEMP_F < <(awk -v cpu_temp_raw="$CPU_TEMP" 'BEGIN { 
+		c = cpu_temp_raw / 1000; 
+		f = c * 9 / 5 + 32; 
+		printf "%.2f %.2f\n", c, f 
+	}')
+
+echo "Hostname: $HOSTNAME"
+echo "IP: $SERVER"
+echo "Date: $DATE"
+echo "Memory: $MEMORY Mb"
+echo "Uptime: $UPTIME days"
+echo "CPU_Temperature: $CPU_TEMP_C $CEL / $CPU_TEMP_F $FAR"
+echo "Ping: $PINGGED"
+echo "CPU_Usage: $CPU_USAGE%"
