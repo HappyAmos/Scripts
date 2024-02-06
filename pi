@@ -1,9 +1,9 @@
 #!/bin/bash
 shopt -s lastpipe
 
-USER="andrew"
+USER="username"
 SERVER="10.0.0.160"
-NETWORK_DEVICE="wlp2s0"
+NETWORK_DEVICE="wlan0"
 
 LOCAL_IP=$(ip -f inet -o addr show $NETWORK_DEVICE|cut -d\  -f 7 | cut -d/ -f 1)
 
