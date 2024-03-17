@@ -1,4 +1,6 @@
 #!/bin/bash
+# A bash script to display information about a running raspberry pi. The output is meant
+# to be manipulated using a conky script (see pi1.conf in /conky).
 shopt -s lastpipe
 
 USER="username"
