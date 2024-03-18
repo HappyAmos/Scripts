@@ -1,0 +1,190 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# - Flipperzero Firmware Setup						      -
+# -									      -
+# - 	Setup environment and clone repos for custom firmware.		      -
+# -									      -
+# -		~ HappyAmos						      -
+# -----------------------------------------------------------------------------
+echo 'Flipperzero firmware setup script'
+
+# Options:  #################################################
+FIRMWARE_BUILD_DATE=12-03-2024
+FIRMWARE_COMMIT=628c055e
+FIRMWARE_BRANCH=0.99.1-rc
+FIRMWARE_TARGET=7
+FIRMWARE_DIR=/home/andrew/Programming/Flipper/firmware/f0ReleaseFirmware
+FIRMWARE_URL=https://github.com/flipperdevices/flipperzero-firmware.git
+
+#############################################################
+#
+# Function definitions
+#
+#############################################################
+
+# Yes/No function
+# Returns 0 on true, 1 on false, 2 on abort
+function yes_no_abort {
+    while true; do
+        read -r -p "$* [y/n/a]: " yn
+        case $yn in
+            [Yy]) return 0 ;;
+            [Nn]) return 1 ;;
+	        [Aa]) return 2 ;;
+        esac
+    done
+}
+
+
+# Check if executable exists
+# Returns 0 on true, 1 on false
+#
+# eg: $(exec_exists "python3"); ex=$?;
+exec_exists() {
+        if cmd=$(command -v "$*"); then return 0; else return 1; fi
+}
+
+
+# Get the current directory
+DIR=$PWD
+
+# Create the new firmware directory
+mkdir $FIRMWARE_DIR &> /dev/null # Throw away all output messages, unimportant: https://stackoverflow.com/questions/15678796/how-do-i-suppress-shell-script-error-messages
+
+
+# Update some data in the firmware source
+#jq '.firmware_version = $newVal' --arg newVal $TARGET_FW_BUILD_REV $ORIGIN_FW_BUILD_FILE
+
+echo #################################################################################
+$(exec_exists "jq"); ex=$?; if [ "$ex" == 1 ]; then
+    $(yes_no_abort "The executable jq is needed to manipulate json files. Install it now? (Y)es (N)o (A)bort"); ans=$?;
+    case $ans in
+        "0")
+            echo "Responded yes, updating apt and installing jq.";
+            sudo apt-get update && sudo apt-get upgrade && sudo apt-get install jq;;
+        "1")
+            echo "Responded no, nothing done.";;
+        "2")
+            echo "Responded abort, aborting.";
+            exit 1;;
+    esac
+fi
+
+
+echo #################################################################################
+$(exec_exists "ghget"); ex=$?; if [ "$ex" == 1 ]; then
+	$(yes_no_abort "Install ghget (Y)es (N)o (A)bort"); ans=$? # Get response and store in ans
+	if [ "$ans" == 0 ]; then
+		echo "Responded yes."
+		# Download ghget to download github subdirs without having any
+		# commit garbage or other baggage.
+		echo "Cloning ghget (GitHub Clone Tool)"
+		git clone https://github.com/mohd-akram/ghget.git tmp/ghget/ # Clone to temporary dir
+		cd "$DIR/tmp/ghget" || ( echo "Couldn't cd into /tmp/ghget"; exit 1 )
+		echo "Installing ghget"
+		sudo make install # Run install script - copies ghget to usr/local/bin
+		cd "$DIR" || ( echo "Couldn't cd into $DIR"; exit 1)
+		echo "Cleaning up temporary files"
+		rm "-rf $DIR/tmp/ghget" # Clean up the temp dir
+	elif [ "$ans" == 1 ]; then echo "Responded no. "; echo "Skipped installing ghget";
+	elif [ "$ans" == 2 ]; then echo "Responded abort. Exiting."; exit 1; # Anything other than an exit 0 will exit the script.
+	fi
+fi
+
+echo #################################################################################
+$(yes_no_abort "F0 Firmware $FIRMWARE_BRANCH to $FIRMWARE_DIR (Y)es (N)o (A)bort"); ans=$?;
+case $ans in
+	"0")
+		echo "Responded yes, cloning...";
+		# Clone the flipperzero firmware
+		echo Cloning Official Flipperzero firmware branch: $FIRMWARE_BRANCH
+		# Turn on echo
+		set -x
+		git clone --recursive --jobs 8 -b $FIRMWARE_BRANCH $FIRMWARE_URL $FIRMWARE_DIR
+
+		# Clone the connect_wires game that isn't included in the XFW repo
+		# ghget -o $FIRMWARE_DIR/applications/external/connect_wires https://github.com/AlexTaran/flipperzero/tree/master/games/connect_wires
+
+		# Clone the Resistors app that isn't included in the XFW repo
+		# ghget -o $FIRMWARE_DIR/applications/external/resistors https://github.com/instantiator/flipper-zero-experimental-apps/tree/main/resistors
+
+		# Turn off echo
+		set +x;;
+
+	"1")
+	    echo "Responded no, nothing done.";;
+	"2")
+	    echo "Responded abort, aborting.";
+	    exit 1;;
+esac
+
+
+
+echo #################################################################################
+$(yes_no_abort "Copy user FAPS to $FIRMWARE_DIR? (Y)es (N)o (A)bort"); ans=$?;
+case $ans in
+	"0")
+	    set -x
+	    # Copy over custom apps
+	    cd $DIR; cp -r applications_user/ $FIRMWARE_DIR
+	    set +x;;
+	"1")
+            echo "Responded no, nothing done.";;
+        "2")
+            echo "Responded abort, aborting.";
+            exit 1;;
+esac
+
+
+
+# Begin build process
+echo #################################################################################
+echo
+echo Build process about to begin.
+echo
+$(yes_no_abort "Continue with the build? (Y)es (N)o (A)bort"); ans=$? # Get response and store in ans
+case $ans in
+    "0")
+        echo "Selected yes."
+ 	cd $FIRMWARE_DIR || ( echo "Couldn't cd into $FIRMWARE_DIR. Build aborted; did not start."; exit 1 )
+	./fbt firmware_all
+	./fbt faps;;
+
+    "1")
+        echo "Selected no."
+        echo
+        echo Note: You can always proceed with the build/flash process by typing "./fbt flash_usb_full";;
+    "2")
+        echo "Selected abort. Build aborted; did not start."
+	exit 1;;
+
+esac
+
+
+# Begin flash process
+echo #################################################################################
+echo
+echo Flash process about to begin, please insert the Flipper Zero.
+echo
+echo In order to flash, the Flipper Zero must be plugged in to USB.
+
+$(yes_no_abort "Continue with the flash process? (Y)es (N)o (A)bort"); ans=$? # Get response and store in ans
+case $ans in
+    "0")
+        echo "Selected yes."
+	cd $FIRMWARE_DIR || ( echo "Couldn't cd into $FIRMWARE_DIR. Build/Flash aborted; did not start."; exit 1 )
+	./fbt flash_usb_full;;
+    "1")
+        echo "Selected no."
+        echo
+        echo Note: You can always proceed with the flash process by typing "./fbt flash_usb_full" or "./fbt flash_usb"
+	exit 1;;
+    "2")
+        echo "Selected abort. Build/Flash aborted; did not start."
+	exit 1;;
+esac
+
+
+echo 
+echo
+echo All done, you can unplug your Flipper Zero now.

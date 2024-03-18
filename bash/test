@@ -1,0 +1,30 @@
+#!/bin/bash
+
+
+# SOURCE_FILE="/home/andrew/Programming/Flipper/firmware/HappyFlip-Firmware/applications/settings/about/about.c"
+# TARGET_STR="https:\/\/flipper-xtre.me\/"
+# REPLACE_STR="https:\/\/bit.ly\/HFXFW"
+# sed -i -e "s/${TARGET_STR}/${REPLACE_STR}/g" $SOURCE_FILE
+
+filename=~/Programming/Flipper/firmware/applications_user/voltcalc_app/application.fam
+#awk -F'appid' '{print $2}' $filename | awk -F'=' '{print $2}' | awk -F'"' '{print $2}' | xargs
+#echo anubhava
+#awk -F '="|",' '$1 == "appid" {print $2}' $filename
+#echo Paolo
+#awk -F= '{if ($1 == "appid") {gsub("[\",]","",$2); print $2}}' $filename
+echo Ed Norton
+awk '
+    {
+        gsub(/^[[:space:]]+|"?[[:space:]]*,?[[:space:]]*$/,"")
+        sub(/[[:space:]]*=[[:space:]]*"?/,"=")
+        tag = val = $0
+        sub(/=.*/,"",tag)
+        sub(/[^=]+=/,"",val)
+    }
+    tag == "appid" {
+        print val
+    }
+' $filename
+echo Rare
+mawk '$0 = $2' FS='^[ \t]*appid[ \t]?=[ \t]?"|"[^"]*$' $filename
+
