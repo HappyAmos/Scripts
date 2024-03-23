@@ -1,0 +1,6 @@
+if whiptail --yesno "Is this a good question" 20 60 ;then
+    echo Yes
+else
+    echo No
+fi
+
