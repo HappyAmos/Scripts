@@ -1,15 +1,63 @@
-#!/bin/bash 
-#------------------------
-SERIAL_ID=ttyACM0
-APPID=kcline
-FIRMWARE_DIR=~/Programming/Flipper/firmware/f0ReleaseFirmware
-SOURCE_DIR=~/Programming/Flipper/firmware/applications_user/$APPID/
-#------------------------
+#!/bin/bash
+#------------------------------------------------------------
+FIRMWARE_DIR=~/Programming/Flipper/f0ReleaseFirmware
+SOURCE_DIR=$PWD/
+#------------------------------------------------------------
+#
+#
+# Retrieve variable from file.
+# @param1 filename
+# @param2 variable to search for
+#
+# You can't return string variables from functions in bash like you would in C/Java/etc
+# You can only echo them.
+get_file_variable() {
+	local filename="$1"
+	local var="$2"
+	local res
+	res=$(awk '
+		{
+			gsub(/^[[:space:]]+|"?[[:space:]]*,?[[:space:]]*$/,"")
+			sub(/[[:space:]]*=[[:space:]]*"?/,"=")
+			tag = val = $0
+			sub(/=.*/,"",tag)
+			sub(/[^=]+=/,"",val)
+		}
+		tag == "'"$var"'" {
+			print val
+		}
+		' "$filename")
+		echo "$res"
+}
+
+
+# Find the name of the tty serial port
+get_serial_port() {
+	local res
+	res=$(dmesg | grep tty | grep -v 'console' | grep -o -m 1 'tty*.*:' | sed -e 's/://g')
+	echo "$res"
+}
+
+APP_FAM="$PWD/application.fam"
+APPID=0
+PORT=0
+
+if test -f "$APP_FAM"; then
+    echo "Reading '$APP_FAM'"
+    APPID=$(get_file_variable "$APP_FAM" "appid")
+    PORT=$(get_serial_port)
+    echo "appid='$APPID' port='$PORT'"
+else
+  echo "$APP_FAM does not exist"
+  exit
+fi
+
 # Reboot the device in case another application is running.
 clear
 echo "Rebooting Flipper..."
 # Send command directly to the Flipper over serial connection
-echo -en 'power reboot\r\n' >> /dev/$SERIAL_ID
+echo -en 'power reboot\r\n' >> /dev/$PORT
+
 set -x
 cp -r $SOURCE_DIR $FIRMWARE_DIR/applications_user/
 cd $FIRMWARE_DIR
@@ -17,6 +65,14 @@ cd $FIRMWARE_DIR
 ./fbt fap_$APPID
 ./fbt launch_app APPSRC=$APPID
 set +x
-echo "~/Programming/Flipper/firmware/flipper-application-catalog/applications/Tools/$APPID/manifest.yml"
-echo "1. Don't forget to update the commit_sha in the manifest for release, as well as the version info in application.fam"
-echo "2. Don't forget to create a new branch for the release."
+echo
+echo
+echo "For Update/Release:"
+echo "1. Git pull/merge the forked flipper-application-catalog so your version is current"
+echo "2. Create a new branch for the new app version/release HappyAmos/$APPID_1.0 in forked flipper-application-catalog"
+echo "3. Add manifest and directory to flipper-application-catalog if they don't exist already"
+echo "   ~/Programming/Flipper/flipper-application-catalog/applications/APP_CATEGORY/$APPID/manifest.yml"
+echo "4. Update the commit_sha in the manifest for release, as well as the version info in application.fam"
+echo "5. Run the manifest validator"
+echo "6. Fill out pull request"
+echo "7. Done."
