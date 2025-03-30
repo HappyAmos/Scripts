@@ -1,0 +1,235 @@
+#!/bin/bash
+
+###
+GIT_USER="HappyAmos"
+GIT_REPO="cheat"
+YES_OK=0
+NO_CANCEL=1
+###
+
+# Functions --
+
+# Download a single Github file using wget
+ghget() {
+	
+	# https://raw.githubusercontent.com/HappyAmos/Scripts/refs/heads/main/vim/.vimrc
+	ghuser="$1"
+	ghrepo="$1"
+	ghfile="$3"
+	ghdest="$4"
+	ghurl="https://raw.githubusercontent.com/$ghuser/$ghrepo/refs/heads/main/$ghfile"
+	wget -O "$ghdest" "$ghurl"
+	if ! [ -f $ghdest ]; then
+		echo "Downloading of [$ghurl] failed."
+		exit NO_CANCEL
+	fi
+}
+
+# Check if executable exists
+# Returns 0 on true, 1 on false
+#
+# eg: $(exec_exists "python3"); ex=$?;
+exec_exists() {
+        if cmd=$(command -v "$*"); then return 0; else return 1; fi
+}
+
+# Yes/No function
+# Returns 0 on true, 1 on false, 2 on abort
+function yes_no_abort {
+    while true; do
+        read -r -p "$* [y/n/a]: " yn
+        case $yn in
+            [Yy]) return 0 ;;
+            [Nn]) return 1 ;;
+	        [Aa]) return 2 ;;
+        esac
+    done
+}
+
+# Retrieve variable from file.
+# @param1 filename
+# @param2 variable to search for
+#
+# You can't return string variables from functions in bash like you would in C/Java/etc
+# You can only echo them.
+get_file_variables() {
+	local filename="$1"
+	local var="$2"
+	local res
+	res=$(awk '
+		{
+			gsub(/^[[:space:]]+|"?[[:space:]]*,?[[:space:]]*$/,"")
+			sub(/[[:space:]]*=[[:space:]]*"?/,"=")
+			tag = val = $0
+			sub(/=.*/,"",tag)
+			sub(/[^=]+=/,"",val)
+		}
+		tag == "'"$var"'" {
+			print val
+		}
+		' "$filename")
+		echo "$res"
+}
+
+# Run a command, failing on failure
+no_fail_command() {
+	"$@"
+	local result=$?
+	if [ "$result" -ne 0 ]; then
+		echo "Command exited with error: [$result]"
+		exit "$result"
+	fi
+}
+
+# Create a couple directories for our setup
+no_fail_command mkdir -p /tmp
+no_fail_command mkdir -p $HOME/scripts
+
+# Update and upgrade all packages, then install required tools
+echo "Updating/Upgrading and installing required tools..."
+no_fail_command sudo apt update && sudo apt upgrade -y
+no_fail_command sudo apt install vim mc jq yq shellcheck whiptail curl build-essential
+
+whiptail_inputbox_no_null() {
+	local prompt="$1"
+	local default="$2"
+	# The weird "3>&1 1>&2 2>&3" redirects the output and display, otherwise you 
+	# wouldn't see this command at all.
+	input=""
+	while : 
+	do
+		if [ -n "$default" ]; then
+			input=$(whiptail --inputbox "$prompt" 0 0 "$default" 3>&1 1>&2 2>&3)
+		else
+			input=$(whiptail --inputbox "$prompt" 0 0 3>&1 1>&2 2>&3)
+		fi
+		input=$(echo "$input" | xargs)
+		if [ -n "$input" ]; then
+			break; 
+		fi
+	done
+	echo "$input"
+}
+
+# Announcement
+whiptail --msgbox "HappyAmos Setup Script\nPress Enter when you're ready to begin." 0 0
+
+# Give user option to back out now after a message
+whiptail --yesno --defaultno \
+	"Make sure that you have already setup your Github .ssh keys and have a Github \
+	 PAT ready to go. Continue?" \
+	0 0
+# YES_OK is 0, NO_CANCEL is 1, pressing ESC returns a 255
+if [ $? -gt $YES_OK ]; then
+	echo "Script cancelled by user."
+	exit $NO_CANCEL	
+fi
+
+
+collect_git_info() {
+# Collect the GIT user name
+	GIT_USER=$(whiptail_inputbox_no_null "Enter your Github user account name:" "$GIT_USER")
+	GIT_TOKEN=$(whiptail_inputbox_no_null "Enter your Github PAT token:" "$GIT_TOKEN")
+	GIT_REPO="/$GIT_USER/"
+	GIT_REPO=$(whiptail_inputbox_no_null "Enter your Github /$GIT_USER/<cheat repo>" "$GIT_REPO")
+	
+	# Display the entered info to the user for review, YES to accept, NO to re-enter
+	whiptail --yesno --defaultno \
+	"Github User: [$GIT_USER]\nGithub PAT: [$GIT_TOKEN]\nGithub Repo: [$GIT_REPO]\n\nAccept this information?" \
+	0 0
+	return $?
+}
+
+# Give the user the option to review the information they entered before proceeding
+# $? returns the output from the last run command
+ans=1
+while [ $ans -gt $YES_OK ]
+do
+	collect_git_info
+	ans=$?
+done
+
+# Install cheat
+printf "Install 'cheat'\n"
+cd /tmp \
+  && wget https://github.com/cheat/cheat/releases/download/4.4.2/cheat-linux-amd64.gz \
+  && gunzip cheat-linux-amd64.gz \
+  && chmod +x cheat-linux-amd64 \
+  && sudo mv cheat-linux-amd64 /usr/local/bin/cheat
+
+cd
+
+# Modify cheat  ~/.config/cheat/conf.yml to set preferences
+echo "Setting 'cheat' preferences..."
+sed -i 's/editor: EDITOR_PATH/editor: vim/g' ~/.config/cheat/conf.yml
+sed -i 's/colorize: false/colorize: false/g' ~/.config/cheat/conf.yml
+sed -i 's/pager: PAGER_PATH/pager: glow/g' ~/.config/cheat/conf.yml
+
+# Symlink to cheat directory
+cd
+echo "Create a symlink to personal cheatsheets folder in home directory."
+ln -s ~/.config/cheat/cheatsheets/personal/ cheat
+
+cd ~/.config/cheat/cheatsheets/personal
+git clone https://"$GIT_USER":"$GIT_TOKEN"@github.com/"$GIT_USER"/"$GIT_REPO"
+mv "$GIT_REPO" "$GIT_REPO".bak
+cd "$GIT_REPO".bak
+mv * ..
+mv *. ..
+
+rm -rf "$GIT_REPO".bak
+rm -rf ~/.config/cheat/cheatsheets
+
+# Install glow
+printf "Install 'glow'\n"
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
+sudo apt install glow
+
+# Run the Rust install script
+curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh
+
+# Modify .bashrc to look for and run autoexec.sh
+printf "\n\n" >> .bashrc
+echo '# Custom command area:' >> .bashrc
+printf "\n" >> .bashrc
+echo 'if [ -f "autoexec.sh" ]; then' >> .bashrc
+echo '  # commands to execute if the file exists' >> .bashrc
+echo '  . ~/autoexec.sh' >> .bashrc
+echo '#else' >> .bashrc
+echo '  # commands to execute if the file does not exist (optional)' >> .bashrc
+echo 'fi' >> .bashrc
+
+# Add some lines to our new autoexec.sh
+fn="$HOME/autoexec.sh"
+if [ ! -e "$file" ]; then
+	touch "$fn"
+	echo "#!/bin/bash" >> "$fn"
+	echo "bash --version" >> "$fn"
+	echo "echo" >> "$fn"
+	echo 'echo "Type cheat -t personal to list personal tagged cheatsheets."' >> "$fn"
+	echo 'echo "Type glow <somefile.md> to view markup"' >> "$fn"
+	echo "echo" >> "$fn"
+	echo "export PATH=$PATH:~/scripts" >> "$fn"
+fi
+
+$(exec_exists "ghget"); ex=$?; if [ "$ex" == 1 ]; then
+	$(yes_no_abort "Install ghget (Y)es (N)o (A)bort"); ans=$? # Get response and store in ans
+	if [ "$ans" == 0 ]; then
+		echo "Responded yes."
+		# Download ghget to download github subdirs without having any
+		# commit garbage or other baggage.
+		echo "Cloning ghget (GitHub Clone Tool)"
+		git clone https://github.com/mohd-akram/ghget.git tmp/ghget/ # Clone to temporary dir
+		cd "$DIR/tmp/ghget" || ( echo "Couldn't cd into /tmp/ghget"; exit 1 )
+		echo "Installing ghget"
+		sudo make install # Run install script - copies ghget to usr/local/bin
+		cd "$DIR" || ( echo "Couldn't cd into $DIR"; exit 1)
+		echo "Cleaning up temporary files"
+		rm "-rf $DIR/tmp/ghget" # Clean up the temp dir
+	elif [ "$ans" == 1 ]; then echo "Responded no. "; echo "Skipped installing ghget";
+	elif [ "$ans" == 2 ]; then echo "Responded abort. Exiting."; exit 1; # Anything other than an exit 0 will exit the script.
+	fi
+fi
+

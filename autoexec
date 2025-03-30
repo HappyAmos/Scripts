@@ -1,0 +1,11 @@
+#!/bin/bash
+
+bash --version
+echo
+echo "Type cheat_update to update cheatsheets."
+echo "Type glow <somefile.md> to view markup"
+
+
+
+export PATH=$PATH:/usr/local/go/bin
+export PATH=$PATH:~/scripts
