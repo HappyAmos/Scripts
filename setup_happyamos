@@ -9,6 +9,19 @@ NO_CANCEL=1
 
 # Functions --
 
+
+# Get and return the CPU architecture
+getarch() {
+	local arch=$(uname -i)
+	if [[ $arch == x86_64* ]]; then
+		echo "amd64"
+	elif [[ $arch == i*86 ]]; then
+		echo "X32"
+	elif  [[ $arch == arm* ]]; then
+		echo "arm64"
+	fi
+}
+
 # Download a single Github file using wget
 ghget() {
 	
@@ -88,7 +101,6 @@ no_fail_command mkdir -p $HOME/Programming/rust
 no_fail_command mkdir -p $HOME/Programming/bash
 no_fail_command mkdir -p $HOME/Programming/c
 no_fail_command mkdir -p $HOME/Programming/cpp
-no_fail_command mkdir -p $HOME/Programming/Scripts
 no_fail_command mkdir -p $HOME/Programming/go
 no_fail_command mkdir -p $HOME/Programming/python
 
@@ -162,11 +174,13 @@ no_fail_command cp $HOME/Programming/Scripts/vim/.vimrc $HOME
 
 # Install cheat
 printf "Install 'cheat'\n"
+getarch
+arch=$?
 cd /tmp \
-  && wget https://github.com/cheat/cheat/releases/download/4.4.2/cheat-linux-amd64.gz \
-  && gunzip cheat-linux-amd64.gz \
-  && chmod +x cheat-linux-amd64 \
-  && sudo mv cheat-linux-amd64 /usr/local/bin/cheat
+  && wget https://github.com/cheat/cheat/releases/download/4.4.2/cheat-linux-"$arch".gz \
+  && gunzip cheat-linux-"$arch".gz \
+  && chmod +x cheat-linux-"$arch" \
+  && sudo mv cheat-linux-"$arch" /usr/local/bin/cheat
 
 cd
 
