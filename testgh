@@ -1,9 +1,0 @@
-#!/bin/bash
-
-# https://raw.githubusercontent.com/HappyAmos/Scripts/refs/heads/main/vim/.vimrc
-GIT_USER="HappyAmos"
-GIT_REPO="Scripts"
-GIT_FILE="vim/.vimrc"
-source="https://raw.githubusercontent.com/$GIT_USER/$GIT_REPO/refs/heads/main/$GIT_FILE"
-destination="$HOME/.testrc"
-wget -O "$destination" "$source"
