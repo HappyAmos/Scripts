@@ -84,6 +84,13 @@ no_fail_command() {
 # Create a couple directories for our setup
 no_fail_command mkdir -p /tmp
 no_fail_command mkdir -p $HOME/scripts
+no_fail_command mkdir -p $HOME/Programming/rust
+no_fail_command mkdir -p $HOME/Programming/bash
+no_fail_command mkdir -p $HOME/Programming/c
+no_fail_command mkdir -p $HOME/Programming/cpp
+no_fail_command mkdir -p $HOME/Programming/Scripts
+no_fail_command mkdir -p $HOME/Programming/go
+no_fail_command mkdir -p $HOME/Programming/python
 
 # Update and upgrade all packages, then install required tools
 echo "Updating/Upgrading and installing required tools..."
@@ -149,6 +156,10 @@ do
 	ans=$?
 done
 
+# Download Scripts repo from Github and cp .vimrc to home dir
+no_fail_command cd $HOME/Programming && git clone https://github.com/HappyAmos/Scripts.git
+no_fail_command cp $HOME/Programming/Scripts/vim/.vimrc $HOME
+
 # Install cheat
 printf "Install 'cheat'\n"
 cd /tmp \
@@ -212,24 +223,5 @@ if [ ! -e "$file" ]; then
 	echo 'echo "Type glow <somefile.md> to view markup"' >> "$fn"
 	echo "echo" >> "$fn"
 	echo "export PATH=$PATH:~/scripts" >> "$fn"
-fi
-
-$(exec_exists "ghget"); ex=$?; if [ "$ex" == 1 ]; then
-	$(yes_no_abort "Install ghget (Y)es (N)o (A)bort"); ans=$? # Get response and store in ans
-	if [ "$ans" == 0 ]; then
-		echo "Responded yes."
-		# Download ghget to download github subdirs without having any
-		# commit garbage or other baggage.
-		echo "Cloning ghget (GitHub Clone Tool)"
-		git clone https://github.com/mohd-akram/ghget.git tmp/ghget/ # Clone to temporary dir
-		cd "$DIR/tmp/ghget" || ( echo "Couldn't cd into /tmp/ghget"; exit 1 )
-		echo "Installing ghget"
-		sudo make install # Run install script - copies ghget to usr/local/bin
-		cd "$DIR" || ( echo "Couldn't cd into $DIR"; exit 1)
-		echo "Cleaning up temporary files"
-		rm "-rf $DIR/tmp/ghget" # Clean up the temp dir
-	elif [ "$ans" == 1 ]; then echo "Responded no. "; echo "Skipped installing ghget";
-	elif [ "$ans" == 2 ]; then echo "Responded abort. Exiting."; exit 1; # Anything other than an exit 0 will exit the script.
-	fi
 fi
 
