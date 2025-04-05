@@ -3,7 +3,7 @@
 GIT_TOKEN=""
 SUDO="sudo"
 
-if [ ! "$GIT_TOKEN" ]; then 
+if [ ! -n "$GIT_TOKEN" ]; then 
 	echo "You must set your Git Token."
 	exit
 fi
