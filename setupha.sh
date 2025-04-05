@@ -95,7 +95,7 @@ install_cheat_glow() {
 	gunzip cheat-linux-"$arch".gz
 	chmod +x cheat-linux-"$arch"
 	echo "$SUDO mv /tmp/cheat-linux-$arch /usr/local/bin/cheat"
-	"$SUDO mv /tmp/cheat-linux-$arch /usr/local/bin/cheat"
+	$SUDO mv /tmp/cheat-linux-"$arch" /usr/local/bin/cheat
 
 	/usr/local/bin/cheat
 
