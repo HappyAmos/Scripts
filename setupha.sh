@@ -95,7 +95,8 @@ install_cheat_glow() {
 	gunzip cheat-linux-"$arch".gz
 	chmod +x cheat-linux-"$arch"
 	"$SUDO" mv cheat-linux-"$arch" /usr/local/bin/cheat
-	mkdir -p ~/.config/cheat && cheat --init > ~/.config/cheat/conf.yml
+
+	cheat
 
 	cd || exit
 
