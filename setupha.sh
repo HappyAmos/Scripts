@@ -174,16 +174,16 @@ install_autoexec() {
 }
 
 verify_whiptail() {
-	if [ "type whiptail" ]; then
+	if hash whiptail 2>/dev/null; then
 		echo "Whiptail is installed."
 	else
-		echo "whiptail is not installed."
+		echo "Whiptail is not installed."
 		"$SUDO" apt update && "$SUDO" apt install whiptail -y
 	fi
 }
 
 verify_sudo() {
-	if [ "type sudo" ]; then
+	if hash sudo 2>/dev/null; then
 		echo "Sudo is installed."
 	else
 		echo "Sudo is not installed."
