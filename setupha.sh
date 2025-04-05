@@ -94,7 +94,8 @@ install_cheat_glow() {
 	wget https://github.com/cheat/cheat/releases/download/4.4.2/cheat-linux-"$arch".gz 
 	gunzip cheat-linux-"$arch".gz
 	chmod +x cheat-linux-"$arch"
-	"$SUDO" mv cheat-linux-"$arch" /usr/local/bin/cheat
+	echo "$SUDO" mv /tmp/cheat-linux-$arch /usr/local/bin/cheat
+	"$SUDO mv /tmp/cheat-linux-$arch /usr/local/bin/cheat"
 
 	cheat
 
