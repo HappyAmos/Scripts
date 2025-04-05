@@ -128,6 +128,7 @@ install_cheat_glow() {
 	$SUDO mkdir -p /etc/apt/keyrings
 	curl -fsSL https://repo.charm.sh/apt/gpg.key | $SUDO gpg --dearmor -o /etc/apt/keyrings/charm.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | $SUDO tee /etc/apt/sources.list.d/charm.list
+	$SUDO apt update
 	$SUDO apt install glow
 
 }
