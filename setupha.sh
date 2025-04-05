@@ -189,7 +189,7 @@ verify_whiptail() {
 		echo "Whiptail is installed."
 	else
 		echo "Whiptail is not installed."
-		"$SUDO" apt update && "$SUDO" apt install whiptail -y
+		$SUDO apt update && "$SUDO" apt install whiptail -y
 	fi
 }
 
