@@ -1,6 +1,7 @@
 #!/bin/bash
 
 GIT_TOKEN=""
+SUDO="sudo"
 
 # 
 # Run or Crash
@@ -67,12 +68,12 @@ setup_directories() {
 
 # Update the system using apt
 system_update() {
-	roc sudo apt update && sudo apt upgrade -y
+	roc "$SUDO" apt update && "$SUDO" apt upgrade -y
 }
 
 # Install basic setup tools
 install_tools() {
-	roc sudo apt install vim mc jq yq shellcheck whiptail curl build-essential
+	roc "$SUDO" apt install vim mc jq yq shellcheck whiptail curl build-essential
 }
 
 # Git clone my Scripts Github repo to $HOME/Programming/Scripts
@@ -91,7 +92,7 @@ install_cheat_glow() {
 	  && wget https://github.com/cheat/cheat/releases/download/4.4.2/cheat-linux-"$arch".gz \
 	  && gunzip cheat-linux-"$arch".gz \
 	  && chmod +x cheat-linux-"$arch" \
-	  && sudo mv cheat-linux-"$arch" /usr/local/bin/cheat
+	  && "$SUDO" mv cheat-linux-"$arch" /usr/local/bin/cheat
 
 	cd || exit
 
@@ -119,10 +120,10 @@ install_cheat_glow() {
 
 	# Install glow
 	printf "Install 'glow'\n"
-	sudo mkdir -p /etc/apt/keyrings
-	curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+	"$SUDO" mkdir -p /etc/apt/keyrings
+	curl -fsSL https://repo.charm.sh/apt/gpg.key | "$SUDO" gpg --dearmor -o /etc/apt/keyrings/charm.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | sudo tee /etc/apt/sources.list.d/charm.list
-	sudo apt install glow
+	"$SUDO" apt install glow
 
 }
 
@@ -172,7 +173,23 @@ install_autoexec() {
 	fi
 }
 
+verify_whiptail() {
+	if [ "type whiptail" ]; then
+		echo "Whiptail is installed."
+	else
+		echo "whiptail is not installed."
+		"$SUDO" apt update && "$SUDO" apt install whiptail -y
+	fi
+}
 
+verify_sudo() {
+	if [ "type sudo" ]; then
+		echo "Sudo is installed."
+	else
+		echo "Sudo is not installed."
+		SUDO=""
+	fi
+}
 
 main_menu() {
 	while [ 1 ]
@@ -231,6 +248,8 @@ main_menu() {
 # Main loop
 main() {
 	# TODO: Install whiptail if not installed
+	verify_sudo
+	verify_whiptail
 	setup_directories
 	main_menu
 
