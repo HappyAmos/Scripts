@@ -57,6 +57,7 @@ whiptail_inputbox_no_null() {
 setup_directories() {
 	# Create a couple directories for our setup
 	roc mkdir -p /tmp
+	roc mkdir -p "$HOME"/.config
 	roc mkdir -p "$HOME"/scripts
 	roc mkdir -p "$HOME"/Programming/rust
 	roc mkdir -p "$HOME"/Programming/bash
@@ -197,8 +198,8 @@ main_menu() {
 	CHOICE=$(
 		whiptail \
 			--title "HappyAmos Setup" \
-			--backtitle "User [$(whoami)]  Architecture [$(getarch)]" \
-			--menu "Make your choice" 16 100 10 \
+			--backtitle "User [$(whoami)] Architecture [$(getarch)] Sudo [$SUDO]" \
+			--menu "Make your choice" 16 65 10 \
 			--nocancel \
 			"1)" "Refresh & update system"   \
 			"2)" "Install tools" \
