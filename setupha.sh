@@ -8,7 +8,7 @@ SUDO="sudo"
 # Runs a command or crashes with exit message on failure.
 # Forces a script to stop at this point and not to continue.
 roc() {
-	"$@"
+	$@
 	local result=$?
 	if [ "$result" -ne 0 ]; then
 		echo "Command exited with error: [$result]"
