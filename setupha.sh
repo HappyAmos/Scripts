@@ -86,8 +86,9 @@ install_scripts() {
 
 # Install Cheat and Glow
 install_cheat_glow() {
-	printf "Installing Cheat and Glow\n"
 	arch=$(getarch)
+	printf "Installing Cheat and Glow\n"
+	echo "Will download cheat-linux-$arch.gz"
 	# Download the appropriate version of cheat from its repo
 	cd /tmp \
 	  && wget https://github.com/cheat/cheat/releases/download/4.4.2/cheat-linux-"$arch".gz \
